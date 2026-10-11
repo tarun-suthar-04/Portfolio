@@ -6,6 +6,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { Media } from "@/types/work";
 
 // Server Actions return a structured result rather than throwing raw
 // errors to the client — CODING_RULES.md §8.
@@ -182,6 +183,24 @@ export async function saveWork(
     return { error: "Invalid work status." };
   }
 
+  if (!id && status === "published") {
+    return { error: "Save the work as a draft first, add media, then publish it." };
+  }
+
+  if (id && status === "published") {
+    const { count, error } = await supabase
+      .from("media")
+      .select("id", { count: "exact", head: true })
+      .eq("work_id", id);
+    if (error) {
+      console.error("Failed to check work media before publishing:", error);
+      return { error: "Couldn't verify the work's media." };
+    }
+    if (!count) {
+      return { error: "Add at least one image or video before publishing." };
+    }
+  }
+
   const toolsUsed = toolsUsedRaw
     .split(",")
     .map((tool) => tool.trim())
@@ -227,7 +246,7 @@ export async function saveWork(
 
     const displayOrder = (lastWork?.display_order ?? 0) + 1;
 
-    const { error } = await supabase.from("work").insert({
+    const { data: createdWork, error } = await supabase.from("work").insert({
       title,
       slug,
       description: description || null,
@@ -236,15 +255,137 @@ export async function saveWork(
       featured,
       tools_used: toolsUsed,
       display_order: displayOrder,
-    });
+    }).select("id").single();
 
-    if (error) {
+    if (error || !createdWork) {
       console.error("Failed to create work:", error);
       return { error: "Couldn't create the work." };
     }
+
+    // Save the metadata first; add images/videos from the edit screen so the
+    // signed upload is always scoped to an existing work ID.
+    redirect(`/admin/works/${createdWork.id}`);
   }
 
   redirect("/admin/works");
+}
+
+const mediaInputSchema = z.object({
+  type: z.enum(["image", "video"]),
+  url: z.string().url().max(2048),
+  publicId: z.string().min(1).max(512),
+  width: z.number().int().positive().max(100000),
+  height: z.number().int().positive().max(100000),
+  duration: z.number().finite().nonnegative().max(86400).optional(),
+});
+
+export async function saveWorkMedia(
+  workId: string,
+  input: unknown
+): Promise<{ error: string } | { media: Media }> {
+  if (!z.string().uuid().safeParse(workId).success) {
+    return { error: "Invalid work." };
+  }
+
+  const parsed = mediaInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: "Cloudinary returned invalid media details." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.app_metadata?.role !== "admin") {
+    return { error: "You must be signed in as an admin to save media." };
+  }
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  let assetUrl: URL;
+  try {
+    assetUrl = new URL(parsed.data.url);
+  } catch {
+    return { error: "Cloudinary returned an invalid URL." };
+  }
+  if (
+    !cloudName ||
+    assetUrl.protocol !== "https:" ||
+    assetUrl.hostname !== "res.cloudinary.com" ||
+    !assetUrl.pathname.startsWith(`/${cloudName}/`)
+  ) {
+    return { error: "Media must come from this project's Cloudinary account." };
+  }
+
+  const { data: work, error: workError } = await supabase
+    .from("work")
+    .select("id")
+    .eq("id", workId)
+    .maybeSingle();
+  if (workError || !work) {
+    return { error: "Couldn't find this work." };
+  }
+
+  const { count: mediaCount, error: countError } = await supabase
+    .from("media")
+    .select("id", { count: "exact", head: true })
+    .eq("work_id", workId);
+  if (countError) {
+    console.error("Failed to check work media limit:", countError);
+    return { error: "Couldn't verify the work's media limit." };
+  }
+  if ((mediaCount ?? 0) >= 30) {
+    return { error: "A work can have at most 30 media items." };
+  }
+
+  const { data: lastMedia, error: orderError } = await supabase
+    .from("media")
+    .select("display_order")
+    .eq("work_id", workId)
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (orderError) {
+    console.error("Failed to read media order:", orderError);
+    return { error: "Couldn't save the media item." };
+  }
+
+  const { data, error } = await supabase
+    .from("media")
+    .insert({
+      work_id: workId,
+      type: parsed.data.type,
+      url: assetUrl.toString(),
+      thumbnail_url: null,
+      public_id: parsed.data.publicId,
+      alt_text: null,
+      caption: null,
+      duration: parsed.data.duration ?? null,
+      display_order: (lastMedia?.display_order ?? 0) + 1,
+      aspect_ratio: parsed.data.width / parsed.data.height,
+    })
+    .select("id, work_id, type, url, thumbnail_url, public_id, alt_text, caption, duration, display_order, aspect_ratio")
+    .single();
+
+  if (error || !data) {
+    console.error("Failed to save media:", error);
+    return { error: "Upload completed, but media details could not be saved." };
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/admin/works/${workId}`);
+  return {
+    media: {
+      id: data.id,
+      workId: data.work_id,
+      type: data.type,
+      url: data.url,
+      thumbnailUrl: data.thumbnail_url ?? undefined,
+      publicId: data.public_id,
+      altText: data.alt_text ?? undefined,
+      caption: data.caption ?? undefined,
+      duration: data.duration ?? undefined,
+      displayOrder: data.display_order,
+      aspectRatio: data.aspect_ratio,
+    },
+  };
 }
 
 export async function deleteWork(id: string): Promise<{ error?: string }> {

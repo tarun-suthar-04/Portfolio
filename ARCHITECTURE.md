@@ -222,7 +222,7 @@ WORK     (many) ───< WORK_TAG >─── (many) TAG      [optional]
 - Generates thumbnails/posters, responsive transformations, and optimized formats automatically.
 - Serves media via CDN.
 
-### 5.2 Upload Flow (Conceptual)
+### 5.2 Upload Flow
 
 ```
 Admin (browser)

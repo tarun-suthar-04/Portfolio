@@ -8,9 +8,9 @@ A visual portfolio and archive built with Next.js App Router, React, TypeScript,
 - Shareable work detail routes and modal navigation.
 - Supabase-backed published work, category, and admin data access.
 - Admin sign-in, work metadata editing, publishing, and category management.
-- Supabase Row Level Security and Cloudinary signed-upload helper.
+- Signed Cloudinary image/video uploads with media metadata saved in Supabase.
 
-Media uploads are not yet wired into the admin form. Configure the services below before running the app against live data.
+Configure Supabase and Cloudinary before using the admin and upload features with live data.
 
 ## Requirements
 
@@ -65,6 +65,6 @@ npm run typecheck
 
 ## Known limitations
 
-- Cloudinary upload signing is implemented and admin-gated, but the upload UI and media-row persistence are not connected.
+- Admins can upload images and videos directly to Cloudinary and save their metadata in Supabase. Configure the Cloudinary environment variables above; media removal, reordering, and alt-text editing are still pending.
 - The sitemap still reads mock works, so live published projects are not represented yet.
 - The exact authorization and database setup should be reviewed in the target Supabase project before deployment.

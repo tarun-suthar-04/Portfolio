@@ -2,7 +2,7 @@
 
 > **Status legend:** `PLANNED` · `IN PROGRESS` · `IMPLEMENTED` · `TESTED` · `DEFERRED`
 >
-> As of this document's creation, the project has no code. **Every feature below is `PLANNED`** unless noted otherwise. This file must be updated as work progresses — see the maintenance process in `PROJECT_CONTEXT.md`.
+> Status reflects the repository implementation as of 2026-10-12. `IMPLEMENTED` means code exists; it does not imply a live-service or device test.
 
 ---
 
@@ -38,27 +38,27 @@
 
 | Feature | Status | Notes |
 |---|---|---|
-| Supabase PostgreSQL schema (Category, Work, Media) | PLANNED | Designed in `ARCHITECTURE.md` §3.2; no live project yet |
-| Row Level Security policies | PLANNED | Cannot exist until a Supabase project/schema exists |
-| Cloudinary media storage & delivery | PLANNED | No live Cloudinary project yet |
-| Signed, server-authorized uploads | IN PROGRESS | `lib/cloudinary/sign.ts` written; not yet called from any UI |
+| Supabase PostgreSQL schema (Category, Work, Media) | IMPLEMENTED | Migrations `0001` and `0002`; connected project's public queries returned the expected schema |
+| Row Level Security policies | IMPLEMENTED | `0002_admin_role_policies.sql` restricts drafts and writes to the server-managed admin claim |
+| Cloudinary media storage & delivery | IN PROGRESS | Signed upload UI and media-row persistence are wired; needs configured Cloudinary credentials and an end-to-end upload check |
+| Signed, server-authorized uploads | IN PROGRESS | Server signs a per-work folder; browser uploads directly to Cloudinary and saves returned metadata through the admin Supabase session |
 
 ### Admin Panel
 
 | Feature | Status | Notes |
 |---|---|---|
-| Admin authentication (Supabase Auth) | IN PROGRESS | Route-gating built; fails until real Supabase project connected |
-| Admin dashboard / works list | IMPLEMENTED | `/admin/works`, against mock data |
-| Add new work | IN PROGRESS | Form built (`/admin/works/new`); save not yet persisted |
-| Edit existing work | IN PROGRESS | Form built (`/admin/works/[id]`); save not yet persisted |
-| Delete work | PLANNED | Not yet built |
-| Draft / publish workflow | IN PROGRESS | `status` field exists in form/schema; not yet persisted |
-| Featured work flag | IN PROGRESS | Field exists in form/schema; not yet persisted |
+| Admin authentication (Supabase Auth) | IMPLEMENTED | Login plus one-time first-admin registration; requires server-only Supabase key and setup token |
+| Admin dashboard / works list | IMPLEMENTED | `/admin/works`, backed by Supabase |
+| Add new work | IMPLEMENTED | Metadata persists; new drafts open the edit screen for media upload |
+| Edit existing work | IMPLEMENTED | Metadata persists through admin Server Actions |
+| Delete work | IMPLEMENTED | Work row and related media rows are deleted |
+| Draft / publish workflow | IMPLEMENTED | Publishing is blocked until at least one media row exists |
+| Featured work flag | IMPLEMENTED | Saved with work metadata |
 | Manual display ordering | PLANNED | Field exists in schema; no reorder UI yet |
-| Category management (create/rename/reorder/remove) | IN PROGRESS | List view built (`/admin/categories`); mutations not yet connected |
-| Multi-media management per work | PLANNED | Noted as pending directly in the work form UI |
-| Image upload | PLANNED | Depends on Cloudinary connection |
-| Video upload | PLANNED | Depends on Cloudinary connection |
+| Category management (create/rename/reorder/remove) | IN PROGRESS | Create/remove are connected; rename/reorder UI is still pending |
+| Multi-media management per work | IN PROGRESS | Upload and preview multiple items; remove/reorder and alt-text editing remain |
+| Image upload | IN PROGRESS | Signed upload, size/type checks, and Supabase media-row persistence implemented; live Cloudinary verification pending |
+| Video upload | IN PROGRESS | Signed upload and media-row persistence implemented; live Cloudinary verification pending |
 | Preview before publishing | PLANNED | Not yet built |
 | Mobile-friendly admin experience | IN PROGRESS | Built mobile-first; not yet tested on a real device |
 

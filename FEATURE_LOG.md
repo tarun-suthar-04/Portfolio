@@ -85,3 +85,15 @@ TEMPLATE FOR FUTURE ENTRIES — copy this block for each new log entry.
 **Impact:**
 <What documents/files/areas of the system this affects. Note if PROJECT_CONTEXT.md, ARCHITECTURE.md, DESIGN.md, CODING_RULES.md, or FEATURES.md needed updates as a result.>
 -->
+
+## 2026-10-12 — Signed media uploads in the admin work form
+
+**Type:** Feature / Security Change
+
+**Status:** Implemented
+
+**Summary:** Added a multi-file image/video uploader for saved works. The server signs uploads into a per-work Cloudinary folder, validates admin access and returned asset metadata, and inserts ordered media rows through the user's Supabase session. New works are saved as drafts first, and publishing requires at least one media item.
+
+**Rationale:** Complete the next implementation milestone in the project report while preserving the Cloudinary secret and Supabase RLS boundaries.
+
+**Impact:** Updated `WorkForm`, Cloudinary signing, admin Server Actions, public media ordering, `FEATURES.md`, `PROJECT_REPORT.md`, and `README.md`. Live Cloudinary credentials and end-to-end upload verification are still required; media deletion, reordering, and alt-text editing remain future work.

@@ -3,11 +3,10 @@
 import { useActionState } from "react";
 import type { Category, Work } from "@/types/work";
 import { saveWork } from "@/app/admin/actions";
+import { MediaUploader } from "@/components/admin/MediaUploader";
 
-// Used for both "new work" and "edit work" — CODING_RULES.md §20 (extract
-// shared UI once real duplication exists). Media upload/reorder UI is the
-// next milestone once Cloudinary's signed-upload flow is wired up
-// (ARCHITECTURE.md §5); this form currently covers metadata only.
+// Used for both "new work" and "edit work". A new record must be saved first
+// so signed media uploads can be scoped to its stable work ID.
 export function WorkForm({
   categories,
   work,
@@ -94,11 +93,13 @@ export function WorkForm({
         </select>
       </Field>
 
-      <div className="rounded border border-dashed border-line p-4 text-sm text-graphite">
-        Media upload isn't wired up yet — see PROJECT_REPORT.md. Once
-        Cloudinary is connected, this section will let you add, reorder, and
-        remove images/videos for this work.
-      </div>
+      {work ? (
+        <MediaUploader work={work} />
+      ) : (
+        <p className="rounded border border-dashed border-line p-4 text-sm text-graphite">
+          Save this work first. You can add images and videos from its edit page.
+        </p>
+      )}
 
       {state?.error && (
         <p role="alert" className="text-sm text-red-700">

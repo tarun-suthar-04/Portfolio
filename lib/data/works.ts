@@ -86,7 +86,9 @@ function mapWork(row: WorkRow): Work {
     toolsUsed: row.tools_used ?? [],
     displayOrder: row.display_order,
     createdAt: row.created_at,
-    media: (row.media ?? []).map(mapMedia),
+    media: (row.media ?? [])
+      .map(mapMedia)
+      .sort((a, b) => a.displayOrder - b.displayOrder),
   };
 }
 
