@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { signIn } from "../actions";
 
 // Deliberately outside the (protected) layout — this is the one admin page
@@ -55,6 +56,13 @@ export default function LoginPage() {
         >
           {pending ? "Signing in…" : "Sign in"}
         </button>
+
+        <p className="text-center text-sm text-graphite">
+          Setting up this site?{" "}
+          <Link href="/admin/register" className="text-accent underline underline-offset-4">
+            Create the first admin account
+          </Link>
+        </p>
       </form>
     </main>
   );

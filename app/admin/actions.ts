@@ -1,5 +1,8 @@
 "use server";
 
+import { timingSafeEqual } from "node:crypto";
+import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -25,6 +28,104 @@ export async function signIn(
 
   if (error) {
     return { error: "Couldn't sign in. Check your email and password." };
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.app_metadata?.role !== "admin") {
+    await supabase.auth.signOut();
+    return { error: "This account does not have admin access." };
+  }
+
+  redirect("/admin/works");
+}
+
+const adminRegistrationSchema = z.object({
+  email: z.string().trim().email().max(254),
+  password: z.string().min(12).max(128),
+  setupToken: z.string().min(1).max(256),
+});
+
+function matchesSetupToken(provided: string, expected: string): boolean {
+  const providedBuffer = Buffer.from(provided);
+  const expectedBuffer = Buffer.from(expected);
+  return (
+    providedBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(providedBuffer, expectedBuffer)
+  );
+}
+
+// Publicly reachable only with a server-only setup token. Creates the first
+// admin, then closes registration once an admin account already exists.
+export async function registerAdmin(
+  _prevState: { error?: string } | undefined,
+  formData: FormData
+): Promise<{ error?: string }> {
+  const parsed = adminRegistrationSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    setupToken: formData.get("setupToken"),
+  });
+
+  if (!parsed.success) {
+    return { error: "Enter a valid email, a password of at least 12 characters, and the setup token." };
+  }
+
+  const expectedToken = process.env.ADMIN_SETUP_TOKEN;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!expectedToken || !supabaseUrl || !serviceRoleKey) {
+    return { error: "Admin registration is not configured on the server." };
+  }
+
+  if (!matchesSetupToken(parsed.data.setupToken, expectedToken)) {
+    return { error: "Invalid setup token." };
+  }
+
+  const adminClient = createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await adminClient.auth.admin.listUsers({
+      page,
+      perPage: 100,
+    });
+    if (error) {
+      console.error("Failed to check for an existing admin:", error);
+      return { error: "Couldn't check admin registration. Verify the Supabase server configuration." };
+    }
+
+    if (data.users.some((user) => user.app_metadata?.role === "admin")) {
+      return { error: "An admin account already exists. Use the sign-in page." };
+    }
+    if (data.users.length < 100) break;
+  }
+
+  const { error: createError } = await adminClient.auth.admin.createUser({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    email_confirm: true,
+    app_metadata: { role: "admin" },
+  });
+
+  if (createError) {
+    console.error("Failed to create the initial admin:", createError);
+    return { error: "Couldn't create the admin account. The email may already be in use." };
+  }
+
+  const supabase = await createClient();
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+
+  if (signInError) {
+    console.error("Admin was created but sign-in failed:", signInError);
+    return { error: "Account created. Please use the sign-in page." };
   }
 
   redirect("/admin/works");

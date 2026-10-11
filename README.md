@@ -34,7 +34,8 @@ For a UI-only local run without a reachable Supabase project, set `USE_MOCK_DATA
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable/anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Reserved server-only key; do not expose to the browser |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase key used for one-time admin creation |
+| `ADMIN_SETUP_TOKEN` | Private one-time token required at `/admin/register` |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary account name |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Server-only Cloudinary signing secret |
@@ -45,12 +46,13 @@ Never commit `.env.local` or production secrets.
 
 ## Supabase setup
 
-1. Create a Supabase project and apply `supabase/migrations/0001_initial_schema.sql`.
-2. Create the owner account in Supabase Auth.
-3. Set that user's **app metadata** to `{ "role": "admin" }` using a trusted Supabase admin interface. Do not set this in user-editable metadata.
-4. Add the project URL and publishable/anon key to `.env.local`.
+1. Create a Supabase project and apply migrations `0001_initial_schema.sql` and `0002_admin_role_policies.sql`.
+2. Add the project URL, publishable/anon key, and service-role key to `.env.local`.
+3. Generate a long random token (for example, `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) and set it as `ADMIN_SETUP_TOKEN` in `.env.local`.
+4. Start the app, open `/admin/register`, and create the first admin account using that token.
+5. Remove `ADMIN_SETUP_TOKEN` from `.env.local` after registration. Never expose either server-only key in client code or commit it.
 
-The migration limits write access and draft visibility to tokens carrying the server-managed `app_metadata.role = admin` claim. Users may need to sign out and in again after changing app metadata to receive a refreshed token.
+The migration limits write access and draft visibility to tokens carrying the server-managed `app_metadata.role = admin` claim. Registration creates one admin and blocks further registrations after an admin exists. Keep both setup credentials server-only; the registration form signs the new admin in automatically.
 
 ## Commands
 
