@@ -1,5 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  getAdjacentWorks as getMockAdjacentWorks,
+  getPublishedWorks as getMockPublishedWorks,
+  getRelatedWorks as getMockRelatedWorks,
+  getWorkBySlug as getMockWorkBySlug,
+} from "@/lib/data/mockWorks";
 import type { Category, Media, Work } from "@/types/work";
+
+const useMockData =
+  process.env.NODE_ENV === "development" && process.env.USE_MOCK_DATA === "true";
 
 type CategoryRow = {
   id: string;
@@ -117,6 +126,8 @@ const WORK_SELECT = `
 export async function getPublishedWorks(
   categorySlug?: string
 ): Promise<Work[]> {
+  if (useMockData) return getMockPublishedWorks(categorySlug);
+
   const supabase = await createClient();
 
   // Filtering on a joined relation column via .eq("category.slug", ...) does
@@ -156,6 +167,8 @@ export async function getPublishedWorks(
 export async function getWorkBySlug(
   slug: string
 ): Promise<Work | undefined> {
+  if (useMockData) return getMockWorkBySlug(slug);
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -177,6 +190,8 @@ export async function getRelatedWorks(
   work: Work,
   limit = 4
 ): Promise<Work[]> {
+  if (useMockData) return getMockRelatedWorks(work, limit);
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -199,6 +214,8 @@ export async function getRelatedWorks(
 export async function getAdjacentWorks(
   work: Work
 ): Promise<{ previous?: Work; next?: Work }> {
+  if (useMockData) return getMockAdjacentWorks(work);
+
   const supabase = await createClient();
 
   // Two targeted queries instead of a full table scan.

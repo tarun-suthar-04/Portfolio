@@ -28,6 +28,8 @@ npm run dev
 
 Set the values in `.env.local` before using database-backed routes:
 
+For a UI-only local run without a reachable Supabase project, set `USE_MOCK_DATA=true`. This fallback is restricted to development and only affects public gallery/viewer data; admin functions still require Supabase.
+
 | Variable | Use |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
@@ -37,6 +39,7 @@ Set the values in `.env.local` before using database-backed routes:
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Server-only Cloudinary signing secret |
 | `NEXT_PUBLIC_SITE_URL` | Canonical site origin used by SEO routes |
+| `USE_MOCK_DATA` | Use bundled sample gallery data in development (`true` or `false`) |
 
 Never commit `.env.local` or production secrets.
 

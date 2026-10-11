@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCategories as getMockCategories } from "@/lib/data/mockWorks";
 import type { Category } from "@/types/work";
+
+const useMockData =
+  process.env.NODE_ENV === "development" && process.env.USE_MOCK_DATA === "true";
 
 type CategoryRow = {
   id: string;
@@ -20,6 +24,8 @@ function mapCategory(row: CategoryRow): Category {
 }
 
 export async function getCategories(): Promise<Category[]> {
+  if (useMockData) return getMockCategories();
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
