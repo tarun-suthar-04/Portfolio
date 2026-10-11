@@ -72,9 +72,17 @@ export async function registerAdmin(
 
   const expectedToken = process.env.ADMIN_SETUP_TOKEN;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!expectedToken || !supabaseUrl || !serviceRoleKey) {
-    return { error: "Admin registration is not configured on the server." };
+  const serviceRoleKey =
+    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const missingConfig = [
+    !supabaseUrl && "NEXT_PUBLIC_SUPABASE_URL",
+    !serviceRoleKey && "SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY)",
+    !expectedToken && "ADMIN_SETUP_TOKEN",
+  ].filter((name): name is string => Boolean(name));
+  if (!supabaseUrl || !serviceRoleKey || !expectedToken) {
+    return {
+      error: `Admin registration is not configured. Add ${missingConfig.join(", ")} to .env.local, then restart the dev server.`,
+    };
   }
 
   if (!matchesSetupToken(parsed.data.setupToken, expectedToken)) {
