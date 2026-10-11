@@ -30,6 +30,7 @@ export default function RegisterForm() {
             required
             autoComplete="email"
             maxLength={254}
+            suppressHydrationWarning
             className="w-full rounded border border-line bg-white px-3 py-3 text-ink"
           />
         </div>
@@ -46,6 +47,7 @@ export default function RegisterForm() {
             minLength={12}
             maxLength={128}
             autoComplete="new-password"
+            suppressHydrationWarning
             className="w-full rounded border border-line bg-white px-3 py-3 text-ink"
           />
           <p className="text-xs text-graphite">Use at least 12 characters.</p>
@@ -61,6 +63,7 @@ export default function RegisterForm() {
             type="password"
             required
             autoComplete="off"
+            suppressHydrationWarning
             className="w-full rounded border border-line bg-white px-3 py-3 text-ink"
           />
         </div>
@@ -74,6 +77,7 @@ export default function RegisterForm() {
         <button
           type="submit"
           disabled={pending}
+          suppressHydrationWarning
           className="w-full rounded bg-accent px-4 py-3 text-sm text-paper disabled:opacity-60"
         >
           {pending ? "Creating account…" : "Create admin account"}

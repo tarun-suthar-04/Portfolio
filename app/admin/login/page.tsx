@@ -25,6 +25,7 @@ export default function LoginPage() {
             type="email"
             required
             autoComplete="email"
+            suppressHydrationWarning
             className="w-full rounded border border-line bg-white px-3 py-3 text-ink"
           />
         </div>
@@ -39,6 +40,7 @@ export default function LoginPage() {
             type="password"
             required
             autoComplete="current-password"
+            suppressHydrationWarning
             className="w-full rounded border border-line bg-white px-3 py-3 text-ink"
           />
         </div>
@@ -52,6 +54,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={pending}
+          suppressHydrationWarning
           className="w-full rounded bg-accent px-4 py-3 text-sm text-paper disabled:opacity-60"
         >
           {pending ? "Signing in…" : "Sign in"}
