@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
-import { createCategory, deleteCategory } from "@/app/admin/actions";
+import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { createCategory, deleteCategory, moveCategory } from "@/app/admin/actions";
 
 // Client Component so we can use useActionState for both the create form
 // and the per-row delete forms with inline error feedback.
@@ -10,6 +11,10 @@ export function CategoryManager({
 }: {
   categories: { id: string; name: string; slug: string }[];
 }) {
+  const router = useRouter();
+  const [movePending, startMove] = useTransition();
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [moveError, setMoveError] = useState("");
   const [createState, createAction, createPending] = useActionState(
     createCategory,
     undefined
@@ -23,11 +28,38 @@ export function CategoryManager({
             No categories yet. Add one below.
           </li>
         ) : (
-          categories.map((category) => (
-            <CategoryRow key={category.id} category={category} />
+          categories.map((category, index) => (
+            <CategoryRow
+              key={category.id}
+              category={category}
+              index={index}
+              itemCount={categories.length}
+              movePending={movePending}
+              moving={movingId === category.id}
+              onMove={(direction) => {
+                if (movePending) return;
+                setMoveError("");
+                setMovingId(category.id);
+                startMove(async () => {
+                  try {
+                    const result = await moveCategory(category.id, direction);
+                    if ("error" in result) {
+                      setMoveError(result.error);
+                    } else {
+                      router.refresh();
+                    }
+                  } catch (error) {
+                    setMoveError(error instanceof Error ? error.message : "Couldn't reorder categories.");
+                  } finally {
+                    setMovingId(null);
+                  }
+                });
+              }}
+            />
           ))
         )}
       </ul>
+      {moveError && <p role="alert" className="mb-4 text-sm text-red-700">{moveError}</p>}
 
       {/* Create form */}
       <form action={createAction} className="flex gap-3">
@@ -56,8 +88,18 @@ export function CategoryManager({
 
 function CategoryRow({
   category,
+  index,
+  itemCount,
+  movePending,
+  moving,
+  onMove,
 }: {
   category: { id: string; name: string; slug: string };
+  index: number;
+  itemCount: number;
+  movePending: boolean;
+  moving: boolean;
+  onMove: (direction: "up" | "down") => void;
 }) {
   const [state, action, pending] = useActionState(
     async (_prev: { error?: string } | undefined) =>
@@ -66,18 +108,39 @@ function CategoryRow({
   );
 
   return (
-    <li className="flex items-center justify-between gap-4 py-3 text-sm">
-      <span>{category.name}</span>
+    <li className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+      <span className="min-w-28 flex-1">{category.name}</span>
       <span className="text-graphite">{category.slug}</span>
-      <form action={action}>
+      <div className="flex items-center gap-3">
         <button
-          type="submit"
-          disabled={pending}
-          className="text-xs text-graphite hover:text-red-700 disabled:opacity-40"
+          type="button"
+          onClick={() => onMove("up")}
+          disabled={movePending || index === 0}
+          className="text-xs text-graphite underline disabled:opacity-40"
+          aria-label={`Move ${category.name} up`}
         >
-          {pending ? "Deleting…" : "Delete"}
+          ↑
         </button>
-      </form>
+        <button
+          type="button"
+          onClick={() => onMove("down")}
+          disabled={movePending || index === itemCount - 1}
+          className="text-xs text-graphite underline disabled:opacity-40"
+          aria-label={`Move ${category.name} down`}
+        >
+          ↓
+        </button>
+        <form action={action}>
+          <button
+            type="submit"
+            disabled={pending || movePending}
+            className="text-xs text-graphite hover:text-red-700 disabled:opacity-40"
+          >
+            {pending ? "Deleting…" : "Delete"}
+          </button>
+        </form>
+      </div>
+      {moving && <span aria-live="polite" className="text-xs text-graphite">Moving…</span>}
       {state?.error && (
         <p role="alert" className="text-xs text-red-700">
           {state.error}

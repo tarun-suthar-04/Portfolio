@@ -63,9 +63,9 @@ The works list now has a per-row status button with pending and error feedback. 
 
 `/admin/works` now supports title/category search plus status and category filters. The client receives only each work's list summary rather than its media records. The change is in the working tree and has not been browser-verified.
 
-### 12. `display_order` Not Editable for Categories
+### 12. Category Ordering — Implemented in Working Tree
 
-Categories can be created and deleted, but their order in the filter bar is fixed at insertion time. There's no UI to reorder them.
+Admins can now move categories up or down; the action writes to the existing `display_order` field and revalidates the public page. The change is in the working tree and has not been browser-verified.
 
 ### 13. Lazy Video Source — Implemented in Working Tree
 
@@ -107,7 +107,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | # | Feature | Notes |
 |---|---|---|
 | N | Admin works search + status filter | Implemented in working tree; review and verify |
-| O | Category reorder | Drag-and-drop list; `updateCategoryOrder` action writing `display_order` |
+| O | Category reorder | Up/down controls implemented in working tree; review and verify |
 | P | Category description | Text area in category edit; rendered as a subtitle on the filter bar |
 | Q | Featured works section | Query `featured = true` on the homepage, pin to top of masonry |
 | R | Work tags / tools filter | Expose `tools_used` array as public filter pills |

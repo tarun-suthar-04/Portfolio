@@ -640,6 +640,81 @@ export async function setWorkStatus(
   return { status: parsedStatus.data };
 }
 
+export async function moveCategory(
+  categoryId: string,
+  direction: "up" | "down"
+): Promise<{ error: string } | { success: true }> {
+  if (
+    !z.string().uuid().safeParse(categoryId).success ||
+    !z.enum(["up", "down"]).safeParse(direction).success
+  ) {
+    return { error: "Invalid category or direction." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.app_metadata?.role !== "admin") {
+    return { error: "You must be signed in as an admin to reorder categories." };
+  }
+
+  const { data: rows, error } = await supabase
+    .from("category")
+    .select("id, display_order")
+    .order("display_order", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) {
+    console.error("Failed to load category order:", error);
+    return { error: "Couldn't load category order." };
+  }
+
+  const categories = rows ?? [];
+  const currentIndex = categories.findIndex((category) => category.id === categoryId);
+  if (currentIndex < 0) {
+    return { error: "Couldn't find this category." };
+  }
+  const neighborIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (neighborIndex < 0 || neighborIndex >= categories.length) {
+    return { success: true };
+  }
+
+  const current = categories[currentIndex];
+  const neighbor = categories[neighborIndex];
+  if (!current || !neighbor) {
+    return { error: "Couldn't find the adjacent category." };
+  }
+  const temporaryOrder = Math.min(0, ...categories.map((category) => category.display_order)) - 1;
+
+  async function setDisplayOrder(id: string, displayOrder: number) {
+    const { data, error: updateError } = await supabase
+      .from("category")
+      .update({ display_order: displayOrder })
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    return !updateError && Boolean(data);
+  }
+
+  if (!(await setDisplayOrder(current.id, temporaryOrder))) {
+    return { error: "Couldn't start reordering this category." };
+  }
+  if (!(await setDisplayOrder(neighbor.id, current.display_order))) {
+    await setDisplayOrder(current.id, current.display_order);
+    return { error: "Couldn't reorder this category; the original order was restored." };
+  }
+  if (!(await setDisplayOrder(current.id, neighbor.display_order))) {
+    const restoredNeighbor = await setDisplayOrder(neighbor.id, neighbor.display_order);
+    const restoredCurrent = await setDisplayOrder(current.id, current.display_order);
+    if (!restoredNeighbor || !restoredCurrent) {
+      console.error("Failed to restore category order after an incomplete reorder.");
+    }
+    return { error: "Couldn't finish reordering this category." };
+  }
+
+  revalidatePath("/admin/categories");
+  revalidatePath("/");
+  return { success: true };
+}
+
 export async function deleteWork(id: string): Promise<{ error?: string }> {
   const supabase = await createClient();
 
