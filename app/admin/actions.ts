@@ -715,6 +715,41 @@ export async function moveCategory(
   return { success: true };
 }
 
+export async function updateCategoryDescription(
+  categoryId: string,
+  value: string
+): Promise<{ error: string } | { success: true; description: string | null }> {
+  if (!z.string().uuid().safeParse(categoryId).success) {
+    return { error: "Invalid category." };
+  }
+  const parsedDescription = z.string().trim().max(500).safeParse(value);
+  if (!parsedDescription.success) {
+    return { error: "Description must be 500 characters or fewer." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.app_metadata?.role !== "admin") {
+    return { error: "You must be signed in as an admin to edit categories." };
+  }
+
+  const description = parsedDescription.data || null;
+  const { data: updated, error } = await supabase
+    .from("category")
+    .update({ description })
+    .eq("id", categoryId)
+    .select("id")
+    .maybeSingle();
+  if (error || !updated) {
+    console.error("Failed to update category description:", error);
+    return { error: "Couldn't save the category description." };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/categories");
+  return { success: true, description };
+}
+
 export async function updateMediaAltText(
   workId: string,
   mediaId: string,
@@ -815,9 +850,16 @@ export async function createCategory(
   }
 
   const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
 
   if (!name) {
     return { error: "Category name is required." };
+  }
+  if (name.length > 80) {
+    return { error: "Category name must be 80 characters or fewer." };
+  }
+  if (description.length > 500) {
+    return { error: "Description must be 500 characters or fewer." };
   }
 
   const slug = name
@@ -842,6 +884,7 @@ export async function createCategory(
   const { error } = await supabase.from("category").insert({
     name,
     slug,
+    description: description || null,
     display_order: displayOrder,
   });
 

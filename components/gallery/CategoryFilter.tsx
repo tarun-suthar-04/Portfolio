@@ -31,6 +31,7 @@ export function CategoryFilter({
   }
 
   const isAllActive = !activeSlug;
+  const activeCategory = categories.find((category) => category.slug === activeSlug);
 
   return (
     <nav aria-label="Filter by category" className="border-b border-line">
@@ -65,6 +66,11 @@ export function CategoryFilter({
           );
         })}
       </ul>
+      {activeCategory?.description && (
+        <p className="mx-auto max-w-[1400px] px-5 pb-4 text-sm text-graphite sm:px-8">
+          {activeCategory.description}
+        </p>
+      )}
     </nav>
   );
 }

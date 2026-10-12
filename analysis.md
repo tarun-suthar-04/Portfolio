@@ -108,7 +108,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 |---|---|---|
 | N | Admin works search + status filter | Implemented in working tree; review and verify |
 | O | Category reorder | Up/down controls implemented in working tree; review and verify |
-| P | Category description | Text area in category edit; rendered as a subtitle on the filter bar |
+| P | Category description | Implemented: admins can add/edit optional descriptions; the active public category filter shows its description. |
 | Q | Featured works section | Query `featured = true` on the homepage, pin to top of masonry |
 | R | Work tags / tools filter | Expose `tools_used` array as public filter pills |
 | S | Contact / inquiry form | Simple form → email via Resend or Supabase Edge Function |
