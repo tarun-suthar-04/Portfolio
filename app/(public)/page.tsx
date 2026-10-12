@@ -16,13 +16,15 @@ import { getPublishedWorks } from "@/lib/data/works";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; tool?: string }>;
 }) {
-  const { category } = await searchParams;
+  const { category, tool } = await searchParams;
   const [categories, works] = await Promise.all([
     getCategories(),
     getPublishedWorks(category),
   ]);
+  const tools = [...new Set(works.flatMap((work) => work.toolsUsed))].sort((a, b) => a.localeCompare(b));
+  const visibleWorks = tool ? works.filter((work) => work.toolsUsed.includes(tool)) : works;
 
   return (
     <main>
@@ -42,9 +44,9 @@ export default async function HomePage({
           </div>
         }
       >
-        <CategoryFilter categories={categories} activeSlug={category} />
+        <CategoryFilter categories={categories} activeSlug={category} tools={tools} activeTool={tool} />
       </Suspense>
-      <MasonryGrid works={works} />
+      <MasonryGrid works={visibleWorks} />
     </main>
   );
 }

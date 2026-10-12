@@ -12,20 +12,26 @@ import type { Category } from "@/types/work";
 export function CategoryFilter({
   categories,
   activeSlug,
+  tools = [],
+  activeTool,
 }: {
   categories: Category[];
   activeSlug?: string;
+  tools?: string[];
+  activeTool?: string;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  function hrefFor(slug?: string) {
+  function hrefFor(slug?: string, tool?: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (slug) {
       params.set("category", slug);
     } else {
       params.delete("category");
     }
+    if (tool) params.set("tool", tool);
+    else params.delete("tool");
     const query = params.toString();
     return query ? `${pathname}?${query}` : pathname;
   }
@@ -38,7 +44,7 @@ export function CategoryFilter({
       <ul className="mx-auto flex max-w-[1400px] flex-wrap gap-x-6 gap-y-2 overflow-x-auto px-5 py-4 sm:px-8">
         <li>
           <Link
-            href={hrefFor(undefined)}
+            href={hrefFor(undefined, activeTool)}
             aria-current={isAllActive ? "true" : undefined}
             className={
               "text-sm transition-colors " +
@@ -53,7 +59,7 @@ export function CategoryFilter({
           return (
             <li key={category.id}>
               <Link
-                href={hrefFor(category.slug)}
+                href={hrefFor(category.slug, activeTool)}
                 aria-current={isActive ? "true" : undefined}
                 className={
                   "text-sm transition-colors " +
@@ -66,6 +72,24 @@ export function CategoryFilter({
           );
         })}
       </ul>
+      {tools.length > 0 && (
+        <ul aria-label="Filter by tool" className="mx-auto flex max-w-[1400px] flex-wrap gap-x-4 gap-y-2 px-5 pb-4 sm:px-8">
+          <li>
+            <Link href={hrefFor(activeSlug, undefined)} aria-current={!activeTool ? "true" : undefined}
+              className={`text-xs transition-colors ${!activeTool ? "text-accent" : "text-graphite hover:text-ink"}`}>
+              All tools
+            </Link>
+          </li>
+          {tools.map((tool) => (
+            <li key={tool}>
+              <Link href={hrefFor(activeSlug, tool)} aria-current={activeTool === tool ? "true" : undefined}
+                className={`text-xs transition-colors ${activeTool === tool ? "text-accent" : "text-graphite hover:text-ink"}`}>
+                {tool}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
       {activeCategory?.description && (
         <p className="mx-auto max-w-[1400px] px-5 pb-4 text-sm text-graphite sm:px-8">
           {activeCategory.description}
