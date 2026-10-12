@@ -27,15 +27,9 @@ Live policy inspection found no broad authenticated SELECT policy. `work` has a 
 
 ## 🟠 High Priority Issues
 
-### 4. `MediaFrame` Uses `<img>` Instead of `next/image`
+### 4. `MediaFrame` Uses `next/image` — Implemented in Working Tree
 
-[MediaFrame.tsx](file:///C:/Users/ASUS/Downloads/tarun-visual-works/components/gallery/MediaFrame.tsx) renders a raw `<img>` with an ESLint disable comment. This means:
-- No automatic WebP/AVIF conversion from Cloudinary
-- No `srcset` / `sizes` — full-resolution images load on mobile
-- No LCP prioritization (the `priority` prop passed from `WorkContent` is silently ignored)
-- No built-in lazy loading for below-the-fold images
-
-This is the single biggest performance win available.
+[MediaFrame.tsx](file:///C:/Users/ASUS/Downloads/tarun-visual-works/components/gallery/MediaFrame.tsx) uses `next/image`, with Cloudinary allowlisted in `next.config.js`. Gallery cards and the full-width viewer hero now receive separate responsive `sizes` hints, and the hero uses the priority hint. The change is in the working tree and has not been browser-verified.
 
 ### 5. `WorkContent` Is a Client Component for No Current Reason
 

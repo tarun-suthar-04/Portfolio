@@ -1,12 +1,13 @@
+﻿import Image from "next/image";
 import type { Media } from "@/types/work";
 import clsx from "clsx";
 
-// Shared by gallery cards and the work viewer, per CODING_RULES.md §20
-// (extract once real duplication exists — this is used in both places).
-//
-// Reserves space using aspectRatio BEFORE the asset loads, to avoid layout
-// shift (DESIGN.md §7). Falls back to a quiet neutral placeholder when no
-// real url is present yet (current state: Cloudinary isn't connected).
+// Shared by gallery cards and the work viewer.
+// Uses next/image with fill + aspect-ratio container to get:
+//  - automatic WebP/AVIF conversion via Cloudinary + Next.js
+//  - lazy loading by default (eager when priority=true for LCP)
+//  - srcset / sizes for responsive delivery
+//  - no layout shift (parent div reserves space via aspectRatio)
 export function MediaFrame({
   media,
   className,
@@ -25,12 +26,19 @@ export function MediaFrame({
     >
       {hasRealMedia ? (
         media.type === "image" ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={media.url}
             alt={media.altText ?? ""}
-            className="h-full w-full object-cover"
-            loading={priority ? "eager" : "lazy"}
+            fill
+            // The viewer hero occupies the full content width; gallery cards
+            // occupy one of two, three, or four columns.
+            sizes={
+              priority
+                ? "(max-width: 1100px) 100vw, 1100px"
+                : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            }
+            priority={priority}
+            className="object-cover"
           />
         ) : (
           <video
