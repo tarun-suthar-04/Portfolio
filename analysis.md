@@ -31,9 +31,9 @@ Live policy inspection found no broad authenticated SELECT policy. `work` has a 
 
 [MediaFrame.tsx](file:///C:/Users/ASUS/Downloads/tarun-visual-works/components/gallery/MediaFrame.tsx) uses `next/image`, with Cloudinary allowlisted in `next.config.js`. Gallery cards and the full-width viewer hero now receive separate responsive `sizes` hints, and the hero uses the priority hint. The change is in the working tree and has not been browser-verified.
 
-### 5. `WorkContent` Is a Client Component for No Current Reason
+### 5. `WorkContent` Server Rendering — Implemented in Working Tree
 
-[WorkContent.tsx](file:///C:/Users/ASUS/Downloads/tarun-visual-works/components/viewer/WorkContent.tsx) is `"use client"` because it was planned for keyboard shortcuts (prev/next arrow keys), but **no `keydown` listener exists**. The entire work detail content — title, description, metadata, related works — is rendered as a client bundle instead of a static server-rendered HTML page.
+[WorkContent.tsx](file:///C:/Users/ASUS/Downloads/tarun-visual-works/components/viewer/WorkContent.tsx) is now a Server Component. Arrow-key handling is isolated in `WorkKeyboardNav`, which ignores modified keys and editable controls. This change is in the working tree and has not been browser-verified.
 
 ### 6. `CategoryFilter` Blocks Gallery Streaming
 
@@ -94,7 +94,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | # | Feature | Notes |
 |---|---|---|
 | F | Gallery `loading.tsx` skeleton | Use CSS `columns` skeleton cards matching masonry layout |
-| G | Convert `WorkContent` back to Server Component | Extract only the keyboard shortcut part to a tiny Client Component |
+| G | Convert `WorkContent` back to Server Component | Implemented in working tree; review and verify |
 | H | Confirm-before-delete for works | Implemented in working tree; review and verify |
 | I | Media delete | Admin action + revalidate; Cloudinary `destroy` via SDK |
 | J | Media reorder | Drag-and-drop or up/down buttons on each media thumbnail |

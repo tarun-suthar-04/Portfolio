@@ -1,16 +1,12 @@
-"use client";
-
-import Link from "next/link";
+﻿import Link from "next/link";
 import type { Work } from "@/types/work";
 import { MediaFrame } from "@/components/gallery/MediaFrame";
 import { GalleryVideo } from "@/components/gallery/GalleryVideo";
+import { WorkKeyboardNav } from "./WorkKeyboardNav";
 
-// Handles: media display, metadata, tools/tags, and prev/next navigation
-// between works — ARCHITECTURE.md §8, DESIGN.md §10.
-//
-// A Client Component because prev/next uses keyboard shortcuts, which need
-// browser event listeners; the underlying data is still fetched server-side
-// (in the page component) and passed down as props.
+// Server Component — all static content (title, description, metadata,
+// media) renders as HTML with zero client JS. Only the keyboard shortcut
+// handler (arrow prev/next) is isolated in a tiny Client Component.
 export function WorkContent({
   work,
   previous,
@@ -24,16 +20,21 @@ export function WorkContent({
 
   return (
     <article className="mx-auto max-w-[1100px] px-5 py-10 sm:px-8">
+      {/* Keyboard navigation (arrow keys) — client-only, no SSR penalty */}
+      <WorkKeyboardNav
+        previousSlug={previous?.slug}
+        nextSlug={next?.slug}
+      />
+
       <div className="mb-8 flex items-center justify-between text-sm">
         <NavLink work={previous} direction="previous" />
         <NavLink work={next} direction="next" />
       </div>
 
-      {/* Main media — the primary item, or first item of a multi-media set */}
+      {/* Main media — primary item, with LCP priority hint */}
       <MediaFrame media={work.media[0]!} className="mb-2" priority />
 
-      {/* Simplified UI for single-media works: no thumbnail strip at all.
-          Only shown when there is genuinely more than one media item. */}
+      {/* Thumbnail strip — only when there is more than one media item */}
       {hasMultipleMedia && (
         <div className="mb-8 grid grid-cols-3 gap-3 sm:grid-cols-4">
           {work.media.slice(1).map((item) =>
@@ -70,7 +71,11 @@ export function WorkContent({
 
 function NavLink({ work, direction }: { work?: Work; direction: "previous" | "next" }) {
   if (!work) {
-    return <span className="text-graphite/40">{direction === "previous" ? "← Previous" : "Next →"}</span>;
+    return (
+      <span className="text-graphite/40">
+        {direction === "previous" ? "← Previous" : "Next →"}
+      </span>
+    );
   }
   return (
     <Link href={`/work/${work.slug}`} className="text-graphite hover:text-accent">
