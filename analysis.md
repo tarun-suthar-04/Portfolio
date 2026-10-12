@@ -35,9 +35,9 @@ Live policy inspection found no broad authenticated SELECT policy. `work` has a 
 
 [WorkContent.tsx](file:///C:/Users/ASUS/Downloads/tarun-visual-works/components/viewer/WorkContent.tsx) is now a Server Component. Arrow-key handling is isolated in `WorkKeyboardNav`, which ignores modified keys and editable controls. This change is in the working tree and has not been browser-verified.
 
-### 6. `CategoryFilter` Blocks Gallery Streaming
+### 6. `CategoryFilter` Suspense Boundary — Implemented in Working Tree
 
-[CategoryFilter.tsx](file:///C:/Users/ASUS/Downloads/tarun-visual-works/components/gallery/CategoryFilter.tsx) uses `useSearchParams()`, which means the entire page tree must wait for the client to hydrate before the filter renders. It needs a `<Suspense>` boundary in the homepage, or be restructured to derive the active state from a server prop.
+[CategoryFilter.tsx](file:///C:/Users/ASUS/Downloads/tarun-visual-works/components/gallery/CategoryFilter.tsx) uses `useSearchParams()` and now sits behind a `<Suspense>` boundary with a filter skeleton in the homepage. The change is in the working tree and has not been build-verified.
 
 ### 7. Confirm Before Deleting a Work — Implemented in Working Tree
 
@@ -51,9 +51,9 @@ Once uploaded, a media item cannot be removed or reordered. The `display_order` 
 
 ## 🟡 Medium Priority (UX / DX)
 
-### 9. No Gallery Loading State (`loading.tsx`)
+### 9. Gallery Loading State — Implemented in Working Tree
 
-Clicking a category filter triggers a server round-trip with zero visual feedback. No skeleton cards, no spinner.
+`app/(public)/loading.tsx` now shows a responsive filter and masonry skeleton. The change is in the working tree and has not been navigation-verified.
 
 ### 10. No Publish/Unpublish Toggle in Works List
 
@@ -93,7 +93,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 
 | # | Feature | Notes |
 |---|---|---|
-| F | Gallery `loading.tsx` skeleton | Use CSS `columns` skeleton cards matching masonry layout |
+| F | Gallery `loading.tsx` skeleton | Implemented in working tree; review and verify |
 | G | Convert `WorkContent` back to Server Component | Implemented in working tree; review and verify |
 | H | Confirm-before-delete for works | Implemented in working tree; review and verify |
 | I | Media delete | Admin action + revalidate; Cloudinary `destroy` via SDK |

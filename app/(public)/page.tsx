@@ -1,3 +1,4 @@
+﻿import { Suspense } from "react";
 import { SiteHeader } from "@/components/gallery/SiteHeader";
 import { CategoryFilter } from "@/components/gallery/CategoryFilter";
 import { MasonryGrid } from "@/components/gallery/MasonryGrid";
@@ -7,6 +8,11 @@ import { getPublishedWorks } from "@/lib/data/works";
 // Server Component: data fetching happens here, never inside presentation
 // components (CODING_RULES.md §4, §8). No hero, no marketing copy above the
 // fold — the homepage IS the work (PROJECT_CONTEXT.md §10).
+//
+// CategoryFilter is wrapped in <Suspense> because it calls useSearchParams()
+// internally, which would otherwise force the entire page to defer rendering
+// until the client hydrates. With the boundary, the header and grid can
+// stream immediately while the filter resolves.
 export default async function HomePage({
   searchParams,
 }: {
@@ -21,7 +27,23 @@ export default async function HomePage({
   return (
     <main>
       <SiteHeader />
-      <CategoryFilter categories={categories} activeSlug={category} />
+      <Suspense
+        fallback={
+          <div className="border-b border-line">
+            <div className="mx-auto flex max-w-[1400px] gap-x-6 px-5 py-4 sm:px-8">
+              {[72, 28, 64, 52, 80, 44].map((w, i) => (
+                <div
+                  key={i}
+                  className="h-4 rounded bg-canvas animate-pulse"
+                  style={{ width: w }}
+                />
+              ))}
+            </div>
+          </div>
+        }
+      >
+        <CategoryFilter categories={categories} activeSlug={category} />
+      </Suspense>
       <MasonryGrid works={works} />
     </main>
   );
