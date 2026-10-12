@@ -59,9 +59,9 @@ The admin can confirm media deletion and move items up or down. Reordering updat
 
 The works list now has a per-row status button with pending and error feedback. Publishing still checks that the work has media. The change is in the working tree and has not been browser-verified.
 
-### 11. No Admin-Side Work Search / Filter
+### 11. Admin Work Search and Filters — Implemented in Working Tree
 
-With many works, the admin list becomes hard to navigate. There's no search, status filter, or category filter in `/admin/works`.
+`/admin/works` now supports title/category search plus status and category filters. The client receives only each work's list summary rather than its media records. The change is in the working tree and has not been browser-verified.
 
 ### 12. `display_order` Not Editable for Categories
 
@@ -106,7 +106,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 
 | # | Feature | Notes |
 |---|---|---|
-| N | Admin works search + status filter | Client-side filter over the fetched list, or a URL param |
+| N | Admin works search + status filter | Implemented in working tree; review and verify |
 | O | Category reorder | Drag-and-drop list; `updateCategoryOrder` action writing `display_order` |
 | P | Category description | Text area in category edit; rendered as a subtitle on the filter bar |
 | Q | Featured works section | Query `featured = true` on the homepage, pin to top of masonry |

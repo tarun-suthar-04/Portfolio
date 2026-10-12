@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { WorkStatusButton } from "@/components/admin/WorkStatusButton";
+import { WorkList } from "@/components/admin/WorkList";
 import { getAdminWorks } from "@/lib/data/adminWorks";
 
 export default async function AdminWorksPage() {
@@ -18,40 +18,15 @@ export default async function AdminWorksPage() {
         </Link>
       </div>
 
-      <div className="divide-y divide-line border-y border-line">
-        {works.length === 0 ? (
-          <p className="py-8 text-sm text-graphite">
-            No works yet. Add your first work.
-          </p>
-        ) : (
-          works.map((work) => (
-            <div key={work.id} className="flex items-center gap-3 py-3">
-              <Link
-                href={`/admin/works/${work.id}`}
-                className="flex min-w-0 flex-1 items-center justify-between gap-4 text-sm hover:text-accent"
-              >
-                <span className="flex-1 truncate">{work.title}</span>
-
-                <span className="hidden text-graphite sm:inline">
-                  {work.category.name}
-                </span>
-
-                <span
-                  className={
-                    "rounded-pill px-2 py-0.5 text-xs " +
-                    (work.status === "published"
-                      ? "bg-accent-soft text-accent"
-                      : "bg-canvas text-graphite")
-                  }
-                >
-                  {work.status}
-                </span>
-              </Link>
-              <WorkStatusButton workId={work.id} initialStatus={work.status} />
-            </div>
-          ))
-        )}
-      </div>
+      <WorkList
+        items={works.map((work) => ({
+          id: work.id,
+          title: work.title,
+          status: work.status,
+          categoryName: work.category.name,
+          categorySlug: work.category.slug,
+        }))}
+      />
     </div>
   );
 }
