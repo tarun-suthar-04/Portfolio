@@ -67,9 +67,9 @@ With many works, the admin list becomes hard to navigate. There's no search, sta
 
 Categories can be created and deleted, but their order in the filter bar is fixed at insertion time. There's no UI to reorder them.
 
-### 13. Video `src` Loads on All Cards at Once
+### 13. Lazy Video Source — Implemented in Working Tree
 
-`GalleryVideo` sets `src={media.url}` on every video card in the masonry grid. Even with `preload="metadata"`, browsers send a network request per video. The `IntersectionObserver` only handles play/pause, not lazy-loading the source.
+`GalleryVideo` now waits for intersection before setting `src`; playback starts in a follow-up effect after React commits that source, avoiding a play-before-src race. The change is in the working tree and has not been browser-verified.
 
 ### 14. Leaked Password Protection Disabled (Supabase Auth)
 
@@ -99,7 +99,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | I | Media delete | Admin action + revalidate; Cloudinary `destroy` via SDK |
 | J | Media reorder | Drag-and-drop or up/down buttons on each media thumbnail |
 | K | Publish/unpublish toggle in works list | Single `<form>` per row calling a `togglePublish` server action |
-| L | Lazy-load video `src` | Set `src` only when `IntersectionObserver` fires, not on mount |
+| L | Lazy-load video `src` | Implemented in working tree; review and verify |
 | M | Alt-text editing for media | Input per media item in MediaUploader; `updateMediaAltText` action |
 
 ### Medium-term
