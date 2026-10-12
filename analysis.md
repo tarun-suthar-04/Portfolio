@@ -19,9 +19,9 @@ Live policy inspection found no broad authenticated SELECT policy. `work` has a 
 
 ---
 
-### 3. Sitemap Fetch and Canonical URL Need Review
+### 3. Sitemap Fetch and Canonical URL — Fixed in Working Tree
 
-`app/sitemap.ts` now queries Supabase for published works in the current working tree. It still silently ignores returned query errors and falls back to `https://example.com` if `NEXT_PUBLIC_SITE_URL` is missing, which can produce an incorrect sitemap. Review and fix those failure cases.
+`app/sitemap.ts` now queries Supabase for published works, logs returned query errors, and requires a valid configured `NEXT_PUBLIC_SITE_URL` instead of emitting a fake `example.com` canonical URL. The change is in the current working tree and has not been runtime-verified.
 
 ---
 
