@@ -4,62 +4,60 @@ import { useEffect, useRef, useState } from "react";
 import type { Media } from "@/types/work";
 import { requestPlay, releaseIfCurrent } from "@/lib/activeVideoRegistry";
 
-// Muted autoplay on enter viewport, pause on exit, single-video-at-a-time —
-// per ARCHITECTURE.md §9 and DESIGN.md §8.
-//
-// Lazy src: the video element is rendered without a src until the
-// IntersectionObserver fires — this prevents the browser from sending a
-// network request for every card on the page at load time.
+// Muted autoplay on hover/focus, pause on leave/blur, single-video-at-a-time.
+// Keep the source lazy so the browser only requests a video when a visitor
+// actually interacts with its card.
 export function GalleryVideo({ media }: { media: Media }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // null = not yet visible; string = src assigned once visible
+  // null = not yet interacted with; string = source assigned on first hover
   const [src, setSrc] = useState<string | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isActive, setIsActive] = useState(false);
+
+  function activate() {
+    if (!media.url) return;
+    setSrc(media.url);
+    setIsActive(true);
+  }
+
+  function deactivate() {
+    setIsActive(false);
+    const video = videoRef.current;
+    if (!video) return;
+    video.pause();
+    releaseIfCurrent(video);
+  }
+
+  const poster = getVideoPoster(media);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !media.url) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry && entry.isIntersecting) {
-          // Assign src on first intersection — browser only fetches then
-          setSrc(media.url);
-          setIsVisible(true);
-        } else {
-          setIsVisible(false);
-          video.pause();
-          releaseIfCurrent(video);
-        }
-      },
-      { threshold: 0.4 }
-    );
-
-    observer.observe(video);
-    return () => {
-      observer.disconnect();
-      releaseIfCurrent(video);
-    };
-  }, [media.url]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video && src && isVisible) {
+    if (video && src && isActive) {
       // Run after React has committed the src attribute to the video element.
       requestPlay(video);
     }
-  }, [isVisible, src]);
+  }, [isActive, src]);
+
+  useEffect(() => {
+    return () => {
+      const video = videoRef.current;
+      if (video) releaseIfCurrent(video);
+    };
+  }, []);
 
   return (
     <div
       className="relative w-full overflow-hidden bg-canvas rounded-card"
       style={{ aspectRatio: media.aspectRatio }}
+      onMouseEnter={activate}
+      onMouseLeave={deactivate}
+      onFocus={activate}
+      onBlur={deactivate}
     >
       {media.url ? (
         <video
           ref={videoRef}
           src={src ?? undefined}
-          poster={media.thumbnailUrl}
+          poster={poster}
           className="h-full w-full object-cover"
           muted
           loop
@@ -87,6 +85,39 @@ export function GalleryVideo({ media }: { media: Media }) {
       )}
     </div>
   );
+}
+
+function getVideoPoster(media: Media): string | undefined {
+  if (!media.url) return media.thumbnailUrl;
+
+  try {
+    const url = new URL(media.url);
+    const uploadMarker = "/video/upload/";
+    const uploadIndex = url.pathname.indexOf(uploadMarker);
+    if (uploadIndex < 0) return media.thumbnailUrl;
+
+    // Pick a stable, asset-specific frame so server rendering stays consistent
+    // while each video gets a representative still before the first hover.
+    const key = media.publicId || media.url;
+    let hash = 2166136261;
+    for (let index = 0; index < key.length; index += 1) {
+      hash = Math.imul(hash ^ key.charCodeAt(index), 16777619);
+    }
+    const fraction = (hash >>> 0) / 0xffffffff;
+    const duration = media.duration;
+    const maxSecond = typeof duration === "number" && duration > 0
+      ? Math.max(0.1, duration - 0.2)
+      : 6;
+    const second = Math.min(maxSecond, 0.5 + fraction * Math.max(0, maxSecond - 0.5));
+    const frame = Number(second.toFixed(2));
+
+    const suffix = url.pathname.slice(uploadIndex + uploadMarker.length);
+    const withoutExtension = suffix.replace(/\.(mp4|mov|webm|m4v)$/i, "");
+    url.pathname = `${url.pathname.slice(0, uploadIndex + uploadMarker.length)}so_${frame},f_jpg,q_auto/${withoutExtension}.jpg`;
+    return url.toString();
+  } catch {
+    return media.thumbnailUrl;
+  }
 }
 
 function formatDuration(seconds: number): string {
