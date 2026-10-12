@@ -38,8 +38,8 @@ export function ViewerModal({ children }: { children: React.ReactNode }) {
       aria-label="Work detail"
       className="m-0 h-dvh max-h-none w-dvw max-w-none bg-paper p-0 backdrop:bg-ink/40"
     >
-      <div className="h-full overflow-y-auto">
-        <div className="sticky top-0 z-10 flex justify-end bg-paper/95 px-5 py-3 backdrop-blur sm:px-8">
+      <div className="flex h-full flex-col overflow-hidden">
+        <div className="z-10 flex h-12 shrink-0 items-center justify-end bg-paper/95 px-5 backdrop-blur sm:px-8">
           <button
             type="button"
             onClick={close}
@@ -49,7 +49,7 @@ export function ViewerModal({ children }: { children: React.ReactNode }) {
             Close
           </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </div>
     </dialog>
   );

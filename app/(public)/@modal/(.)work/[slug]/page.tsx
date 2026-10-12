@@ -25,7 +25,7 @@ export default async function WorkModal({
 
   return (
     <ViewerModal>
-      <WorkContent work={work} previous={previous} next={next} />
+      <WorkContent work={work} previous={previous} next={next} inModal />
       <RelatedWork works={related} />
     </ViewerModal>
   );

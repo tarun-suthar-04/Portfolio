@@ -12,10 +12,14 @@ export function MediaFrame({
   media,
   className,
   priority = false,
+  fit = "cover",
+  controls = false,
 }: {
   media: Media;
   className?: string;
   priority?: boolean;
+  fit?: "cover" | "contain";
+  controls?: boolean;
 }) {
   const hasRealMedia = Boolean(media.url);
 
@@ -38,16 +42,17 @@ export function MediaFrame({
                 : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             }
             priority={priority}
-            className="object-cover"
+            className={fit === "contain" ? "object-contain" : "object-cover"}
           />
         ) : (
           <video
             src={media.url}
             poster={media.thumbnailUrl}
-            className="h-full w-full object-cover"
-            muted
+            className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
+            controls={controls}
+            muted={!controls}
             playsInline
-            loop
+            loop={!controls}
           />
         )
       ) : (
