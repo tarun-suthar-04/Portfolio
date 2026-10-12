@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 
 // Uses the native <dialog> element so focus trapping and Escape-to-close
 // (DESIGN.md §10, §20) come from the platform rather than a hand-rolled
-// implementation. Closing replaces the modal route with the homepage so the
-// action has consistent behavior regardless of how the work URL was opened.
+// implementation. Closing performs a full navigation to the homepage, which
+// also clears the intercepted route from the parallel modal slot.
 export function ViewerModal({ children }: { children: React.ReactNode }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const router = useRouter();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -19,7 +17,7 @@ export function ViewerModal({ children }: { children: React.ReactNode }) {
   }, []);
 
   function close() {
-    router.replace("/");
+    window.location.replace("/");
   }
 
   return (
