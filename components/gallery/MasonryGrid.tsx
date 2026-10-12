@@ -13,13 +13,29 @@ export function MasonryGrid({ works }: { works: Work[] }) {
     );
   }
 
+  const featured = works.filter((work) => work.featured);
+  const remaining = works.filter((work) => !work.featured);
+
   return (
-    <div className="mx-auto max-w-[1400px] px-5 py-8 sm:px-8">
-      <div className="columns-2 gap-5 sm:columns-3 lg:columns-4">
-        {works.map((work) => (
-          <GalleryCard key={work.id} work={work} />
-        ))}
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-10 px-5 py-8 sm:px-8">
+      {featured.length > 0 && (
+        <section aria-labelledby="featured-work-heading">
+          <h2 id="featured-work-heading" className="mb-5 font-display text-xl italic text-ink">
+            Featured work
+          </h2>
+          <div className="columns-2 gap-5 sm:columns-3 lg:columns-4">
+            {featured.map((work) => <GalleryCard key={work.id} work={work} />)}
+          </div>
+        </section>
+      )}
+      {remaining.length > 0 && (
+        <section aria-label={featured.length > 0 ? "More work" : "Portfolio work"}>
+          {featured.length > 0 && <h2 className="mb-5 font-display text-xl italic text-ink">More work</h2>}
+          <div className="columns-2 gap-5 sm:columns-3 lg:columns-4">
+            {remaining.map((work) => <GalleryCard key={work.id} work={work} />)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

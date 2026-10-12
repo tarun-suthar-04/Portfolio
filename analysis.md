@@ -109,7 +109,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | N | Admin works search + status filter | Implemented in working tree; review and verify |
 | O | Category reorder | Up/down controls implemented in working tree; review and verify |
 | P | Category description | Implemented: admins can add/edit optional descriptions; the active public category filter shows its description. |
-| Q | Featured works section | Query `featured = true` on the homepage, pin to top of masonry |
+| Q | Featured works section | Implemented: published works with `featured = true` appear in a dedicated section above the remaining gallery; category filters still apply. |
 | R | Work tags / tools filter | Expose `tools_used` array as public filter pills |
 | S | Contact / inquiry form | Simple form → email via Resend or Supabase Edge Function |
 | T | Dark mode | CSS custom properties already use named tokens (`--paper`, `--ink`); swap them in `prefers-color-scheme: dark` |
