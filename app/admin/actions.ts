@@ -579,6 +579,67 @@ export async function moveWorkMedia(
   return { success: true };
 }
 
+export async function setWorkStatus(
+  workId: string,
+  targetStatus: string
+): Promise<{ error: string } | { status: "draft" | "published" }> {
+  if (!z.string().uuid().safeParse(workId).success) {
+    return { error: "Invalid work." };
+  }
+  const parsedStatus = z.enum(["draft", "published"]).safeParse(targetStatus);
+  if (!parsedStatus.success) {
+    return { error: "Invalid work status." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.app_metadata?.role !== "admin") {
+    return { error: "You must be signed in as an admin to change publish status." };
+  }
+
+  const { data: work, error: workError } = await supabase
+    .from("work")
+    .select("slug, status")
+    .eq("id", workId)
+    .maybeSingle();
+  if (workError || !work) {
+    return { error: "Couldn't find this work." };
+  }
+  if (work.status === parsedStatus.data) {
+    return { status: work.status };
+  }
+
+  if (parsedStatus.data === "published") {
+    const { count, error: countError } = await supabase
+      .from("media")
+      .select("id", { count: "exact", head: true })
+      .eq("work_id", workId);
+    if (countError) {
+      console.error("Failed to check work media before publishing:", countError);
+      return { error: "Couldn't verify this work's media." };
+    }
+    if (!count) {
+      return { error: "Add at least one image or video before publishing." };
+    }
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("work")
+    .update({ status: parsedStatus.data })
+    .eq("id", workId)
+    .select("id")
+    .maybeSingle();
+  if (updateError || !updated) {
+    console.error("Failed to change work status:", updateError);
+    return { error: "Couldn't change the work's publish status." };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/works");
+  revalidatePath(`/work/${work.slug}`);
+  return { status: parsedStatus.data };
+}
+
 export async function deleteWork(id: string): Promise<{ error?: string }> {
   const supabase = await createClient();
 

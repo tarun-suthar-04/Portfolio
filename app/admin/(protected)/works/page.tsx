@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import { WorkStatusButton } from "@/components/admin/WorkStatusButton";
 import { getAdminWorks } from "@/lib/data/adminWorks";
 
 export default async function AdminWorksPage() {
@@ -25,28 +25,30 @@ export default async function AdminWorksPage() {
           </p>
         ) : (
           works.map((work) => (
-            <Link
-              key={work.id}
-              href={`/admin/works/${work.id}`}
-              className="flex items-center justify-between gap-4 py-3 text-sm hover:text-accent"
-            >
-              <span className="flex-1">{work.title}</span>
-
-              <span className="text-graphite">
-                {work.category.name}
-              </span>
-
-              <span
-                className={
-                  "rounded-pill px-2 py-0.5 text-xs " +
-                  (work.status === "published"
-                    ? "bg-accent-soft text-accent"
-                    : "bg-canvas text-graphite")
-                }
+            <div key={work.id} className="flex items-center gap-3 py-3">
+              <Link
+                href={`/admin/works/${work.id}`}
+                className="flex min-w-0 flex-1 items-center justify-between gap-4 text-sm hover:text-accent"
               >
-                {work.status}
-              </span>
-            </Link>
+                <span className="flex-1 truncate">{work.title}</span>
+
+                <span className="hidden text-graphite sm:inline">
+                  {work.category.name}
+                </span>
+
+                <span
+                  className={
+                    "rounded-pill px-2 py-0.5 text-xs " +
+                    (work.status === "published"
+                      ? "bg-accent-soft text-accent"
+                      : "bg-canvas text-graphite")
+                  }
+                >
+                  {work.status}
+                </span>
+              </Link>
+              <WorkStatusButton workId={work.id} initialStatus={work.status} />
+            </div>
           ))
         )}
       </div>

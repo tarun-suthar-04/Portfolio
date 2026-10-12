@@ -55,9 +55,9 @@ The admin can confirm media deletion and move items up or down. Reordering updat
 
 `app/(public)/loading.tsx` now shows a responsive filter and masonry skeleton. The change is in the working tree and has not been navigation-verified.
 
-### 10. No Publish/Unpublish Toggle in Works List
+### 10. Publish/Unpublish Toggle — Implemented in Working Tree
 
-To publish a draft, the admin must open the full edit form, change the status dropdown, and save. A single toggle button in the list row would be faster.
+The works list now has a per-row status button with pending and error feedback. Publishing still checks that the work has media. The change is in the working tree and has not been browser-verified.
 
 ### 11. No Admin-Side Work Search / Filter
 
@@ -98,7 +98,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | H | Confirm-before-delete for works | Implemented in working tree; review and verify |
 | I | Media delete | Implemented in working tree; Cloudinary credentials required for live verification |
 | J | Media reorder | Up/down buttons implemented in working tree; review and verify |
-| K | Publish/unpublish toggle in works list | Single `<form>` per row calling a `togglePublish` server action |
+| K | Publish/unpublish toggle in works list | Implemented in working tree; review and verify |
 | L | Lazy-load video `src` | Implemented in working tree; review and verify |
 | M | Alt-text editing for media | Input per media item in MediaUploader; `updateMediaAltText` action |
 
