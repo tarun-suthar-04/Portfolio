@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 
 // Uses the native <dialog> element so focus trapping and Escape-to-close
 // (DESIGN.md §10, §20) come from the platform rather than a hand-rolled
-// implementation. Closing returns to the gallery at its previous scroll
-// position via router.back(), since this route was reached by intercepting
-// a gallery click (ARCHITECTURE.md §2.3).
+// implementation. Closing replaces the modal route with the homepage so the
+// action has consistent behavior regardless of how the work URL was opened.
 export function ViewerModal({ children }: { children: React.ReactNode }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const router = useRouter();
@@ -20,7 +19,7 @@ export function ViewerModal({ children }: { children: React.ReactNode }) {
   }, []);
 
   function close() {
-    router.back();
+    router.replace("/");
   }
 
   return (
