@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCategories } from "@/lib/data/categories";
 import { getWorkById } from "@/lib/data/adminWorks";
 import { deleteWork } from "@/app/admin/actions";
+import { DeleteWorkForm } from "@/components/admin/DeleteWorkForm";
 import { WorkForm } from "../WorkForm";
 
 export default async function EditWorkPage({
@@ -29,19 +30,13 @@ export default async function EditWorkPage({
           Deleting a work permanently removes it and all its media. This cannot
           be undone.
         </p>
-        <form
+        <DeleteWorkForm
+          workTitle={work.title}
           action={async () => {
             "use server";
             await deleteWork(work.id);
           }}
-        >
-          <button
-            type="submit"
-            className="rounded border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
-          >
-            Delete this work
-          </button>
-        </form>
+        />
       </div>
     </div>
   );
