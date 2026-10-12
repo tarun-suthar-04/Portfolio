@@ -100,7 +100,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | J | Media reorder | Up/down buttons implemented in working tree; review and verify |
 | K | Publish/unpublish toggle in works list | Implemented in working tree; review and verify |
 | L | Lazy-load video `src` | Implemented in working tree; review and verify |
-| M | Alt-text editing for media | Input per media item in MediaUploader; `updateMediaAltText` action |
+| M | Alt-text editing for media | Implemented: admins can edit and clear each media item's alt text; the server action validates input, checks admin access and ownership, and revalidates the public work page. |
 
 ### Medium-term
 

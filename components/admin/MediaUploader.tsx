@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { deleteWorkMedia, moveWorkMedia, saveWorkMedia } from "@/app/admin/actions";
+import { deleteWorkMedia, moveWorkMedia, saveWorkMedia, updateMediaAltText } from "@/app/admin/actions";
 import { getUploadSignature } from "@/lib/cloudinary/sign";
 import type { Media, Work } from "@/types/work";
 
@@ -34,6 +34,7 @@ export function MediaUploader({ work }: { work: Work }) {
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [savingAltTextId, setSavingAltTextId] = useState<string | null>(null);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -192,6 +193,29 @@ export function MediaUploader({ work }: { work: Work }) {
     }
   }
 
+  async function saveAltText(item: Media, value: string) {
+    if (uploading || deletingId || reorderingId || savingAltTextId) return;
+    setError("");
+    setNotice("");
+    setSavingAltTextId(item.id);
+    try {
+      const result = await updateMediaAltText(work.id, item.id, value);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setMedia((current) => current.map((entry) =>
+        entry.id === item.id ? { ...entry, altText: result.altText ?? undefined } : entry
+      ));
+      setNotice("Alt text saved.");
+      router.refresh();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Couldn't save alt text.");
+    } finally {
+      setSavingAltTextId(null);
+    }
+  }
+
   return (
     <section className="max-w-xl space-y-4 rounded border border-line p-4" aria-labelledby="media-heading">
       <div>
@@ -213,9 +237,11 @@ export function MediaUploader({ work }: { work: Work }) {
               itemCount={media.length}
               deleting={deletingId === item.id}
               reordering={reorderingId === item.id}
-              disabled={uploading || deletingId !== null || reorderingId !== null}
+              savingAltText={savingAltTextId === item.id}
+              disabled={uploading || deletingId !== null || reorderingId !== null || savingAltTextId !== null}
               onRemove={() => removeMedia(item)}
               onMove={(direction) => moveMedia(item, direction)}
+              onSaveAltText={(value) => saveAltText(item, value)}
             />
           ))}
         </ul>
@@ -264,19 +290,26 @@ function MediaPreview({
   itemCount,
   deleting,
   reordering,
+  savingAltText,
   disabled,
   onRemove,
   onMove,
+  onSaveAltText,
 }: {
   media: Media;
   index: number;
   itemCount: number;
   deleting: boolean;
   reordering: boolean;
+  savingAltText: boolean;
   disabled: boolean;
   onRemove: () => void;
   onMove: (direction: "up" | "down") => void;
+  onSaveAltText: (value: string) => void;
 }) {
+  const [altText, setAltText] = useState(media.altText ?? "");
+  useEffect(() => setAltText(media.altText ?? ""), [media.altText]);
+
   return (
     <li className="overflow-hidden rounded border border-line bg-canvas">
       <div className="relative bg-black" style={{ aspectRatio: media.aspectRatio }}>
@@ -320,6 +353,27 @@ function MediaPreview({
             {deleting ? "Deleting…" : reordering ? "Moving…" : "Delete"}
           </button>
         </div>
+      </div>
+      <div className="space-y-2 border-t border-line p-2">
+        <label htmlFor={`alt-${media.id}`} className="block text-xs text-graphite">Alt text</label>
+        <input
+          id={`alt-${media.id}`}
+          value={altText}
+          maxLength={500}
+          onChange={(event) => setAltText(event.target.value)}
+          onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
+          placeholder="Describe this media, or leave blank if decorative."
+          disabled={disabled}
+          className="w-full rounded border border-line bg-white px-2 py-1.5 text-xs text-ink"
+        />
+        <button
+          type="button"
+          onClick={() => onSaveAltText(altText)}
+          disabled={disabled || savingAltText || altText.trim() === (media.altText ?? "")}
+          className="rounded border border-line px-2 py-1 text-xs text-ink disabled:opacity-50"
+        >
+          {savingAltText ? "Saving…" : "Save alt text"}
+        </button>
       </div>
     </li>
   );

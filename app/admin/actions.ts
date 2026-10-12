@@ -715,6 +715,66 @@ export async function moveCategory(
   return { success: true };
 }
 
+export async function updateMediaAltText(
+  workId: string,
+  mediaId: string,
+  value: string
+): Promise<{ error: string } | { success: true; altText: string | null }> {
+  if (
+    !z.string().uuid().safeParse(workId).success ||
+    !z.string().uuid().safeParse(mediaId).success
+  ) {
+    return { error: "Invalid work or media." };
+  }
+  const parsedAltText = z.string().trim().max(500).safeParse(value);
+  if (!parsedAltText.success) {
+    return { error: "Alt text must be 500 characters or fewer." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.app_metadata?.role !== "admin") {
+    return { error: "You must be signed in as an admin to edit media." };
+  }
+
+  const { data: media, error: mediaError } = await supabase
+    .from("media")
+    .select("id")
+    .eq("id", mediaId)
+    .eq("work_id", workId)
+    .maybeSingle();
+  if (mediaError || !media) {
+    return { error: "Couldn't find this media item." };
+  }
+
+  const { data: work, error: workError } = await supabase
+    .from("work")
+    .select("slug")
+    .eq("id", workId)
+    .maybeSingle();
+  if (workError || !work) {
+    return { error: "Couldn't find this work." };
+  }
+
+  const altText = parsedAltText.data || null;
+  const { data: updated, error: updateError } = await supabase
+    .from("media")
+    .update({ alt_text: altText })
+    .eq("id", mediaId)
+    .eq("work_id", workId)
+    .select("id")
+    .maybeSingle();
+  if (updateError || !updated) {
+    console.error("Failed to update media alt text:", updateError);
+    return { error: "Couldn't save the alt text." };
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/work/${work.slug}`);
+  revalidatePath(`/admin/works/${workId}`);
+  return { success: true, altText };
+}
+
 export async function deleteWork(id: string): Promise<{ error?: string }> {
   const supabase = await createClient();
 
