@@ -113,7 +113,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | R | Work tags / tools filter | Implemented: public tool filter pills are derived from the currently published/category-filtered works and combine with category query filters. |
 | S | Contact / inquiry form | Simple form → email via Resend or Supabase Edge Function |
 | T | Dark mode | Implemented: named color tokens switch for `prefers-color-scheme: dark`; native controls, placeholders, and error colors adapt too. |
-| U | OG image generation | Use `next/og` to auto-generate per-work social preview images from the primary media |
+| U | OG image generation | Implemented: each work has a generated social card using its first Cloudinary image, title, and category, with a text-only fallback. |
 
 ### Future / Nice-to-have
 
