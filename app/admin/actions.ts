@@ -490,6 +490,95 @@ export async function deleteWorkMedia(
   return { success: true };
 }
 
+export async function moveWorkMedia(
+  workId: string,
+  mediaId: string,
+  direction: "up" | "down"
+): Promise<{ error: string } | { success: true }> {
+  if (
+    !z.string().uuid().safeParse(workId).success ||
+    !z.string().uuid().safeParse(mediaId).success ||
+    !z.enum(["up", "down"]).safeParse(direction).success
+  ) {
+    return { error: "Invalid work, media, or direction." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.app_metadata?.role !== "admin") {
+    return { error: "You must be signed in as an admin to reorder media." };
+  }
+
+  const { data: work, error: workError } = await supabase
+    .from("work")
+    .select("slug")
+    .eq("id", workId)
+    .maybeSingle();
+  if (workError || !work) {
+    return { error: "Couldn't find this work." };
+  }
+
+  const { data: rows, error: rowsError } = await supabase
+    .from("media")
+    .select("id, display_order")
+    .eq("work_id", workId)
+    .order("display_order", { ascending: true })
+    .order("id", { ascending: true });
+  if (rowsError) {
+    console.error("Failed to load media order:", rowsError);
+    return { error: "Couldn't load this work's media order." };
+  }
+
+  const mediaRows = rows ?? [];
+  const currentIndex = mediaRows.findIndex((row) => row.id === mediaId);
+  if (currentIndex < 0) {
+    return { error: "Couldn't find this media item." };
+  }
+  const neighborIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (neighborIndex < 0 || neighborIndex >= mediaRows.length) {
+    return { success: true };
+  }
+
+  const current = mediaRows[currentIndex];
+  const neighbor = mediaRows[neighborIndex];
+  if (!current || !neighbor) {
+    return { error: "Couldn't find the adjacent media item." };
+  }
+  const temporaryOrder = Math.min(0, ...mediaRows.map((row) => row.display_order)) - 1;
+
+  async function setDisplayOrder(id: string, displayOrder: number) {
+    const { data, error } = await supabase
+      .from("media")
+      .update({ display_order: displayOrder })
+      .eq("id", id)
+      .eq("work_id", workId)
+      .select("id")
+      .maybeSingle();
+    return !error && Boolean(data);
+  }
+
+  if (!(await setDisplayOrder(current.id, temporaryOrder))) {
+    return { error: "Couldn't start reordering this media item." };
+  }
+  if (!(await setDisplayOrder(neighbor.id, current.display_order))) {
+    await setDisplayOrder(current.id, current.display_order);
+    return { error: "Couldn't reorder this media item; the original order was restored." };
+  }
+  if (!(await setDisplayOrder(current.id, neighbor.display_order))) {
+    const restoredNeighbor = await setDisplayOrder(neighbor.id, neighbor.display_order);
+    const restoredCurrent = await setDisplayOrder(current.id, current.display_order);
+    if (!restoredNeighbor || !restoredCurrent) {
+      console.error("Failed to restore media order after an incomplete reorder.");
+    }
+    return { error: "Couldn't finish reordering this media item." };
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/work/${work.slug}`);
+  revalidatePath(`/admin/works/${workId}`);
+  return { success: true };
+}
+
 export async function deleteWork(id: string): Promise<{ error?: string }> {
   const supabase = await createClient();
 

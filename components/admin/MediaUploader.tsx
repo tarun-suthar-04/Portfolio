@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { deleteWorkMedia, saveWorkMedia } from "@/app/admin/actions";
+import { deleteWorkMedia, moveWorkMedia, saveWorkMedia } from "@/app/admin/actions";
 import { getUploadSignature } from "@/lib/cloudinary/sign";
 import type { Media, Work } from "@/types/work";
 
@@ -33,6 +33,7 @@ export function MediaUploader({ work }: { work: Work }) {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -45,7 +46,7 @@ export function MediaUploader({ work }: { work: Work }) {
   }
 
   async function uploadSelectedFiles() {
-    if (!files.length || uploading || deletingId) return;
+    if (!files.length || uploading || deletingId || reorderingId) return;
     if (media.length + files.length > MAX_MEDIA_ITEMS) {
       setError(`A work can have at most ${MAX_MEDIA_ITEMS} media items.`);
       return;
@@ -134,7 +135,7 @@ export function MediaUploader({ work }: { work: Work }) {
   }
 
   async function removeMedia(item: Media) {
-    if (uploading || deletingId) return;
+    if (uploading || deletingId || reorderingId) return;
     if (!window.confirm(`Permanently delete this ${item.type} from Cloudinary and this work?`)) return;
 
     setError("");
@@ -156,6 +157,41 @@ export function MediaUploader({ work }: { work: Work }) {
     }
   }
 
+  async function moveMedia(item: Media, direction: "up" | "down") {
+    if (uploading || deletingId || reorderingId) return;
+
+    setError("");
+    setNotice("");
+    setReorderingId(item.id);
+    try {
+      const result = await moveWorkMedia(work.id, item.id, direction);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+
+      setMedia((current) => {
+        const from = current.findIndex((entry) => entry.id === item.id);
+        const to = direction === "up" ? from - 1 : from + 1;
+        if (from < 0 || to < 0 || to >= current.length) return current;
+
+        const reordered = [...current];
+        const first = reordered[from];
+        const second = reordered[to];
+        if (!first || !second) return current;
+        reordered[from] = { ...second, displayOrder: first.displayOrder };
+        reordered[to] = { ...first, displayOrder: second.displayOrder };
+        return reordered;
+      });
+      setNotice("Media order updated.");
+      router.refresh();
+    } catch (moveError) {
+      setError(moveError instanceof Error ? moveError.message : "Couldn't reorder this media item.");
+    } finally {
+      setReorderingId(null);
+    }
+  }
+
   return (
     <section className="max-w-xl space-y-4 rounded border border-line p-4" aria-labelledby="media-heading">
       <div>
@@ -169,13 +205,17 @@ export function MediaUploader({ work }: { work: Work }) {
 
       {media.length > 0 ? (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {media.map((item) => (
+          {media.map((item, index) => (
             <MediaPreview
               key={item.id}
               media={item}
+              index={index}
+              itemCount={media.length}
               deleting={deletingId === item.id}
-              disabled={uploading || (deletingId !== null && deletingId !== item.id)}
+              reordering={reorderingId === item.id}
+              disabled={uploading || deletingId !== null || reorderingId !== null}
               onRemove={() => removeMedia(item)}
+              onMove={(direction) => moveMedia(item, direction)}
             />
           ))}
         </ul>
@@ -195,7 +235,7 @@ export function MediaUploader({ work }: { work: Work }) {
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime"
           multiple
-          disabled={uploading || deletingId !== null || media.length >= MAX_MEDIA_ITEMS}
+          disabled={uploading || deletingId !== null || reorderingId !== null || media.length >= MAX_MEDIA_ITEMS}
           onChange={selectFiles}
           className="block w-full text-sm text-graphite file:mr-3 file:rounded file:border-0 file:bg-canvas file:px-3 file:py-2 file:text-sm file:text-ink"
         />
@@ -208,7 +248,7 @@ export function MediaUploader({ work }: { work: Work }) {
         <button
           type="button"
           onClick={uploadSelectedFiles}
-          disabled={uploading || deletingId !== null || files.length === 0 || media.length >= MAX_MEDIA_ITEMS}
+          disabled={uploading || deletingId !== null || reorderingId !== null || files.length === 0 || media.length >= MAX_MEDIA_ITEMS}
           className="rounded border border-line px-4 py-2 text-sm text-ink disabled:opacity-50"
         >
           {uploading ? "Uploading…" : "Upload selected media"}
@@ -220,14 +260,22 @@ export function MediaUploader({ work }: { work: Work }) {
 
 function MediaPreview({
   media,
+  index,
+  itemCount,
   deleting,
+  reordering,
   disabled,
   onRemove,
+  onMove,
 }: {
   media: Media;
+  index: number;
+  itemCount: number;
   deleting: boolean;
+  reordering: boolean;
   disabled: boolean;
   onRemove: () => void;
+  onMove: (direction: "up" | "down") => void;
 }) {
   return (
     <li className="overflow-hidden rounded border border-line bg-canvas">
@@ -241,15 +289,37 @@ function MediaPreview({
       </div>
       <div className="flex items-center justify-between gap-2 px-2 py-1.5">
         <p className="text-xs capitalize text-graphite">{media.type}</p>
-        <button
-          type="button"
-          onClick={onRemove}
-          disabled={disabled}
-          className="text-xs text-red-700 underline disabled:opacity-50"
-          aria-label={`Delete ${media.type} media`}
-        >
-          {deleting ? "Deleting…" : "Delete"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onMove("up")}
+            disabled={disabled || index === 0}
+            className="text-xs text-graphite underline disabled:opacity-40"
+            aria-label="Move media up"
+            title="Move up"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            onClick={() => onMove("down")}
+            disabled={disabled || index === itemCount - 1}
+            className="text-xs text-graphite underline disabled:opacity-40"
+            aria-label="Move media down"
+            title="Move down"
+          >
+            ↓
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            disabled={disabled}
+            className="text-xs text-red-700 underline disabled:opacity-50"
+            aria-label={`Delete ${media.type} media`}
+          >
+            {deleting ? "Deleting…" : reordering ? "Moving…" : "Delete"}
+          </button>
+        </div>
       </div>
     </li>
   );
