@@ -112,7 +112,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | Q | Featured works section | Implemented: published works with `featured = true` appear in a dedicated section above the remaining gallery; category filters still apply. |
 | R | Work tags / tools filter | Implemented: public tool filter pills are derived from the currently published/category-filtered works and combine with category query filters. |
 | S | Contact / inquiry form | Simple form → email via Resend or Supabase Edge Function |
-| T | Dark mode | CSS custom properties already use named tokens (`--paper`, `--ink`); swap them in `prefers-color-scheme: dark` |
+| T | Dark mode | Implemented: named color tokens switch for `prefers-color-scheme: dark`; native controls, placeholders, and error colors adapt too. |
 | U | OG image generation | Use `next/og` to auto-generate per-work social preview images from the primary media |
 
 ### Future / Nice-to-have

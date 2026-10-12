@@ -10,13 +10,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        paper: "#F7F6F3",   // page background — warm, cool-leaning off-white
-        ink: "#14140F",     // primary text — warm-tinted near-black, not pure #000
-        graphite: "#6B6A63",// secondary/meta text
-        line: "#DFDDD5",    // hairline borders/dividers
-        canvas: "#EDEBE4",  // placeholder/media background before load
-        accent: "#2F4538",  // archive green — used sparingly (active state, focus, links)
-        "accent-soft": "#E4E9E5", // accent tint for active pill backgrounds
+        paper: "rgb(var(--color-paper) / <alpha-value>)",
+        ink: "rgb(var(--color-ink) / <alpha-value>)",
+        graphite: "rgb(var(--color-graphite) / <alpha-value>)",
+        line: "rgb(var(--color-line) / <alpha-value>)",
+        canvas: "rgb(var(--color-canvas) / <alpha-value>)",
+        accent: "rgb(var(--color-accent) / <alpha-value>)",
+        "accent-soft": "rgb(var(--color-accent-soft) / <alpha-value>)",
       },
       fontFamily: {
         display: ["var(--font-display)", "Georgia", "serif"],
