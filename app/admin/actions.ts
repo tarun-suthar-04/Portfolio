@@ -1,6 +1,7 @@
 "use server";
 
 import { timingSafeEqual } from "node:crypto";
+import { v2 as cloudinary } from "cloudinary";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { redirect } from "next/navigation";
@@ -386,6 +387,107 @@ export async function saveWorkMedia(
       aspectRatio: data.aspect_ratio,
     },
   };
+}
+
+export async function deleteWorkMedia(
+  workId: string,
+  mediaId: string
+): Promise<{ error: string } | { success: true }> {
+  if (!z.string().uuid().safeParse(workId).success || !z.string().uuid().safeParse(mediaId).success) {
+    return { error: "Invalid work or media." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.app_metadata?.role !== "admin") {
+    return { error: "You must be signed in as an admin to delete media." };
+  }
+
+  const { data: media, error: mediaError } = await supabase
+    .from("media")
+    .select("id, work_id, type, url, public_id")
+    .eq("id", mediaId)
+    .eq("work_id", workId)
+    .maybeSingle();
+  if (mediaError || !media) {
+    return { error: "Couldn't find this media item." };
+  }
+
+  const { data: work, error: workError } = await supabase
+    .from("work")
+    .select("slug, status")
+    .eq("id", workId)
+    .maybeSingle();
+  if (workError || !work) {
+    return { error: "Couldn't find this work." };
+  }
+
+  if (work.status === "published") {
+    const { count, error: countError } = await supabase
+      .from("media")
+      .select("id", { count: "exact", head: true })
+      .eq("work_id", workId);
+    if (countError) {
+      console.error("Failed to check remaining work media:", countError);
+      return { error: "Couldn't verify whether this work can lose its media." };
+    }
+    if ((count ?? 0) <= 1) {
+      return { error: "Unpublish this work before deleting its last media item." };
+    }
+  }
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloudName || !apiKey || !apiSecret) {
+    return { error: "Cloudinary is not configured on the server; media was not deleted." };
+  }
+
+  let assetUrl: URL;
+  try {
+    assetUrl = new URL(media.url);
+  } catch {
+    return { error: "This media record has an invalid Cloudinary URL." };
+  }
+  if (
+    assetUrl.protocol !== "https:" ||
+    assetUrl.hostname !== "res.cloudinary.com" ||
+    !assetUrl.pathname.startsWith(`/${cloudName}/`)
+  ) {
+    return { error: "This media record does not belong to the configured Cloudinary account." };
+  }
+
+  cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
+  try {
+    const result = await cloudinary.uploader.destroy(media.public_id, {
+      resource_type: media.type,
+      invalidate: true,
+    });
+    if (result.result !== "ok" && result.result !== "not found") {
+      console.error("Cloudinary did not delete the asset:", result.result);
+      return { error: "Cloudinary couldn't delete this media item." };
+    }
+  } catch (error) {
+    console.error("Cloudinary media deletion failed:", error);
+    return { error: "Cloudinary couldn't delete this media item; the database record was kept." };
+  }
+
+  const { data: deleted, error: deleteError } = await supabase
+    .from("media")
+    .delete()
+    .eq("id", mediaId)
+    .eq("work_id", workId)
+    .select("id")
+    .maybeSingle();
+  if (deleteError || !deleted) {
+    console.error("Cloudinary asset was deleted, but its media row could not be removed:", deleteError);
+    return { error: "The Cloudinary asset was removed, but its database record could not be deleted. Refresh and retry." };
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/work/${work.slug}`);
+  revalidatePath(`/admin/works/${workId}`);
+  return { success: true };
 }
 
 export async function deleteWork(id: string): Promise<{ error?: string }> {

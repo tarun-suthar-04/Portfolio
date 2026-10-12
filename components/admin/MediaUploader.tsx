@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { saveWorkMedia } from "@/app/admin/actions";
+import { deleteWorkMedia, saveWorkMedia } from "@/app/admin/actions";
 import { getUploadSignature } from "@/lib/cloudinary/sign";
 import type { Media, Work } from "@/types/work";
 
@@ -32,6 +32,7 @@ export function MediaUploader({ work }: { work: Work }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -44,7 +45,7 @@ export function MediaUploader({ work }: { work: Work }) {
   }
 
   async function uploadSelectedFiles() {
-    if (!files.length || uploading) return;
+    if (!files.length || uploading || deletingId) return;
     if (media.length + files.length > MAX_MEDIA_ITEMS) {
       setError(`A work can have at most ${MAX_MEDIA_ITEMS} media items.`);
       return;
@@ -132,6 +133,29 @@ export function MediaUploader({ work }: { work: Work }) {
     if (failures.length > 0) setError(failures.join(" "));
   }
 
+  async function removeMedia(item: Media) {
+    if (uploading || deletingId) return;
+    if (!window.confirm(`Permanently delete this ${item.type} from Cloudinary and this work?`)) return;
+
+    setError("");
+    setNotice("");
+    setDeletingId(item.id);
+    try {
+      const result = await deleteWorkMedia(work.id, item.id);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setMedia((current) => current.filter((mediaItem) => mediaItem.id !== item.id));
+      setNotice("Media removed.");
+      router.refresh();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Couldn't delete this media item.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <section className="max-w-xl space-y-4 rounded border border-line p-4" aria-labelledby="media-heading">
       <div>
@@ -146,7 +170,13 @@ export function MediaUploader({ work }: { work: Work }) {
       {media.length > 0 ? (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {media.map((item) => (
-            <MediaPreview key={item.id} media={item} />
+            <MediaPreview
+              key={item.id}
+              media={item}
+              deleting={deletingId === item.id}
+              disabled={uploading || (deletingId !== null && deletingId !== item.id)}
+              onRemove={() => removeMedia(item)}
+            />
           ))}
         </ul>
       ) : (
@@ -165,7 +195,7 @@ export function MediaUploader({ work }: { work: Work }) {
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime"
           multiple
-          disabled={uploading || media.length >= MAX_MEDIA_ITEMS}
+          disabled={uploading || deletingId !== null || media.length >= MAX_MEDIA_ITEMS}
           onChange={selectFiles}
           className="block w-full text-sm text-graphite file:mr-3 file:rounded file:border-0 file:bg-canvas file:px-3 file:py-2 file:text-sm file:text-ink"
         />
@@ -178,7 +208,7 @@ export function MediaUploader({ work }: { work: Work }) {
         <button
           type="button"
           onClick={uploadSelectedFiles}
-          disabled={uploading || files.length === 0 || media.length >= MAX_MEDIA_ITEMS}
+          disabled={uploading || deletingId !== null || files.length === 0 || media.length >= MAX_MEDIA_ITEMS}
           className="rounded border border-line px-4 py-2 text-sm text-ink disabled:opacity-50"
         >
           {uploading ? "Uploading…" : "Upload selected media"}
@@ -188,7 +218,17 @@ export function MediaUploader({ work }: { work: Work }) {
   );
 }
 
-function MediaPreview({ media }: { media: Media }) {
+function MediaPreview({
+  media,
+  deleting,
+  disabled,
+  onRemove,
+}: {
+  media: Media;
+  deleting: boolean;
+  disabled: boolean;
+  onRemove: () => void;
+}) {
   return (
     <li className="overflow-hidden rounded border border-line bg-canvas">
       <div className="relative bg-black" style={{ aspectRatio: media.aspectRatio }}>
@@ -199,7 +239,18 @@ function MediaPreview({ media }: { media: Media }) {
           <video src={media.url} controls preload="metadata" className="h-full w-full object-contain" />
         )}
       </div>
-      <p className="px-2 py-1.5 text-xs capitalize text-graphite">{media.type}</p>
+      <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+        <p className="text-xs capitalize text-graphite">{media.type}</p>
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={disabled}
+          className="text-xs text-red-700 underline disabled:opacity-50"
+          aria-label={`Delete ${media.type} media`}
+        >
+          {deleting ? "Deleting…" : "Delete"}
+        </button>
+      </div>
     </li>
   );
 }

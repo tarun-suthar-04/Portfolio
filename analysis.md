@@ -43,9 +43,9 @@ Live policy inspection found no broad authenticated SELECT policy. `work` has a 
 
 The edit page now asks the admin to confirm the work title and cascading media deletion before submitting. The change is in the current working tree and has not been browser-verified.
 
-### 8. No Media Delete / Reorder
+### 8. Media Delete Implemented; Reordering Remains
 
-Once uploaded, a media item cannot be removed or reordered. The `display_order` column exists but the admin has no UI for it.
+The admin can now confirm deletion of a media item from Cloudinary and its Supabase row. Deleting the last media from a published work is blocked. Media ordering still has no UI. Live deletion requires Cloudinary API credentials and has not been verified against the account.
 
 ---
 
@@ -96,7 +96,7 @@ Supabase advisor flagged that HaveIBeenPwned password checking is disabled in th
 | F | Gallery `loading.tsx` skeleton | Implemented in working tree; review and verify |
 | G | Convert `WorkContent` back to Server Component | Implemented in working tree; review and verify |
 | H | Confirm-before-delete for works | Implemented in working tree; review and verify |
-| I | Media delete | Admin action + revalidate; Cloudinary `destroy` via SDK |
+| I | Media delete | Implemented in working tree; Cloudinary credentials required for live verification |
 | J | Media reorder | Drag-and-drop or up/down buttons on each media thumbnail |
 | K | Publish/unpublish toggle in works list | Single `<form>` per row calling a `togglePublish` server action |
 | L | Lazy-load video `src` | Implemented in working tree; review and verify |
